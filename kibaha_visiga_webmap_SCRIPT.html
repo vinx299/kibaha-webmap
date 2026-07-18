@@ -1,0 +1,154 @@
+html_content = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Kibaha / Visiga Ward - Web Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body,html{height:100%;font-family:Segoe UI,sans-serif;overflow:hidden;background:#0f172a}
+#map{height:100vh;width:100%}
+.map-title{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;background:rgba(15,23,42,0.92);color:#f8fafc;padding:10px 28px;border-radius:8px;font-size:16px;font-weight:600;border:1px solid rgba(148,163,184,0.2);text-align:center}
+.map-title .subtitle{font-size:11px;color:#94a3b8;margin-top:2px}
+.legend-panel{position:absolute;top:150px;right:12px;z-index:1000;background:rgba(15,23,42,0.92);border-radius:10px;border:1px solid rgba(148,163,184,0.15);min-width:200px;max-width:240px}
+.legend-header{padding:12px 16px;background:rgba(30,41,59,0.8);border-bottom:1px solid rgba(148,163,184,0.1);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.legend-header .title{color:#f1f5f9;font-size:13px;font-weight:600}
+.legend-body{padding:14px 16px;max-height:300px;overflow-y:auto}
+.legend-section{margin-bottom:12px}
+.legend-section-title{font-size:11px;font-weight:700;color:#cbd5e1;text-transform:uppercase;margin-bottom:6px;border-bottom:1px solid rgba(148,163,184,0.2);padding-bottom:3px}
+.legend-item{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:11px;color:#e2e8f0}
+.legend-color{width:16px;height:16px;border-radius:3px;border:1px solid rgba(255,255,255,0.2)}
+.legend-line{width:20px;height:3px;border-radius:2px}
+.legend-circle{width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,0.3)}
+.legend-dash{width:20px;height:0;border-top:2px dashed;border-radius:1px}
+.coord-display{position:absolute;bottom:12px;left:12px;z-index:1000;background:rgba(15,23,42,0.85);color:#94a3b8;padding:6px 12px;border-radius:6px;font-size:11px;font-family:monospace;border:1px solid rgba(148,163,184,0.1)}
+.popup-table{font-size:11px;border-collapse:collapse;width:100%}
+.popup-table td{padding:2px 4px;color:#1a1a2e}
+.popup-table tr:nth-child(even){background:#f8fafc}
+.leaflet-control-layers{background:rgba(15,23,42,0.92)!important;border-radius:10px!important;border:1px solid rgba(148,163,184,0.15)!important;color:#e2e8f0!important}
+.leaflet-control-scale{background:rgba(15,23,42,0.85)!important;border:1px solid rgba(148,163,184,0.15)!important;border-radius:6px!important;color:#cbd5e1!important;font-size:11px!important}
+.custom-div-icon{background:transparent;border:none}
+.marker-health{width:12px;height:12px;background:#dc2626;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4)}
+.marker-school{width:12px;height:12px;background:#2563eb;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4)}
+.marker-market{width:12px;height:12px;background:#16a34a;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4)}
+.compass-control{position:absolute;top:70px;right:12px;z-index:1000;width:60px;height:60px;pointer-events:none}
+.compass-control svg{width:100%;height:100%;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))}
+</style>
+</head>
+<body>
+<div class="map-title">Kibaha Urban & Visiga Ward<div class="subtitle">GIS, Remote Sensing & Photogrammetry Integration</div></div>
+<div class="compass-control" id="compass">
+<svg viewBox="0 0 100 100">
+<circle cx="50" cy="50" r="45" fill="none" stroke="#dc2626" stroke-width="2"/>
+<circle cx="50" cy="50" r="38" fill="none" stroke="#dc2626" stroke-width="0.5" opacity="0.5"/>
+<polygon points="50,8 56,42 50,38 44,42" fill="#dc2626"/>
+<polygon points="50,92 56,58 50,62 44,58" fill="#7f1d1d"/>
+<text x="50" y="18" text-anchor="middle" fill="#dc2626" font-size="10" font-weight="bold" font-family="Arial">N</text>
+<text x="50" y="88" text-anchor="middle" fill="#7f1d1d" font-size="8" font-family="Arial">S</text>
+<text x="12" y="53" text-anchor="middle" fill="#dc2626" font-size="8" font-family="Arial">W</text>
+<text x="88" y="53" text-anchor="middle" fill="#dc2626" font-size="8" font-family="Arial">E</text>
+<line x1="50" y1="12" x2="50" y2="20" stroke="#dc2626" stroke-width="1"/>
+<line x1="50" y1="80" x2="50" y2="88" stroke="#7f1d1d" stroke-width="1"/>
+<line x1="12" y1="50" x2="20" y2="50" stroke="#dc2626" stroke-width="1"/>
+<line x1="80" y1="50" x2="88" y2="50" stroke="#dc2626" stroke-width="1"/>
+</svg>
+</div>
+<div class="legend-panel" id="legendPanel"><div class="legend-header" onclick="toggleLegend()"><div class="title">Layer Legend</div><div class="toggle">&#9660;</div></div><div class="legend-body" id="legendBody"><div id="legend-content"><p style="color:#888;font-size:10px;font-style:italic">Toggle layers to see legends.</p></div></div></div>
+<div class="coord-display" id="coord-display">Lat: -- | Lon: --</div>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="./Kibaha_Urban.js"></script>
+<script src="./Visiga_Ward.js"></script>
+<script src="./Kibaha_Roads.js"></script>
+<script src="./Visiga_Roads.js"></script>
+<script src="./Buildings.js"></script>
+<script src="./CONTOUR1.js"></script>
+<script src="./Visiga_Health.js"></script>
+<script src="./Visiga_Schools.js"></script>
+<script src="./Visiga_Markets.js"></script>
+<script src="./road_grid.js"></script>
+<script src="./Health_Buffer_1_5km.js"></script>
+<script src="./School_Buffer_2km.js"></script>
+<script src="./Market_Buffer_1km.js"></script>
+<script>
+const osm=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"&copy; OpenStreetMap",maxZoom:19});
+const sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{attribution:"&copy; Esri",maxZoom:18});
+const terrain=L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",{attribution:"&copy; OpenTopoMap",maxZoom:17});
+const light=L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{attribution:"&copy; OSM &copy; CARTO",maxZoom:20});
+const dark=L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{attribution:"&copy; OSM &copy; CARTO",maxZoom:20});
+const baseMaps={"OSM":osm,"Satellite":sat,"Terrain":terrain,"Light":light,"Dark":dark};
+const map=L.map("map",{zoomControl:true,attributionControl:true}).setView([-6.715,38.80],13);
+dark.addTo(map);
+const ndvi2015Layer=L.imageOverlay("ndvi_2015.png",[[-6.779136292,38.759250238],[-6.651126364,38.838212151]],{opacity:0.75,interactive:false});
+const NDVI_2020=L.imageOverlay("NDVI_2020.png",[[-6.779136292,38.759250238],[-6.651126364,38.838212151]],{opacity:0.75,interactive:false});
+const NDVI_2025=L.imageOverlay("NDVI_2025.png",[[-6.779136292,38.759250238],[-6.651126364,38.838212151]],{opacity:0.75,interactive:false});
+const NDVI_Change_2020_2015=L.imageOverlay("NDVI_Change_2020_2015.png",[[-6.779136292,38.759250238],[-6.651126364,38.838212151]],{opacity:0.75,interactive:false});
+const NDVI_Change_2025_2015=L.imageOverlay("NDVI_Change_2025_2015.png",[[-6.779136292,38.759250238],[-6.651126364,38.838212151]],{opacity:0.75,interactive:false});
+const NDVI_Change_2025_2020=L.imageOverlay("NDVI_Change_2025_2020.png",[[-6.779136292,38.759250238],[-6.651126364,38.838212151]],{opacity:0.75,interactive:false});
+const Rainfall_2015=L.imageOverlay("Rainfall_2015.png",[[-6.779136292,38.759250238],[-6.651126364,38.838212151]],{opacity:0.75,interactive:false});
+const Rainfall_2020=L.imageOverlay("Rainfall_2020.png",[[-6.779136292,38.759250238],[-6.651126364,38.838212151]],{opacity:0.75,interactive:false});
+const Rainfall_2025=L.imageOverlay("Rainfall_2025.png",[[-6.779136292,38.759250238],[-6.651126364,38.838212151]],{opacity:0.75,interactive:false});
+const Rainfall_Change_2015_2025=L.imageOverlay("Rainfall_Change_2015_2025.png",[[-6.779136292,38.759250238],[-6.651126364,38.838212151]],{opacity:0.75,interactive:false});
+const DEM=L.imageOverlay("DEM.png",[[-6.779136292,38.759250238],[-6.651126364,38.838212151]],{opacity:0.75,interactive:false});
+const Slope=L.imageOverlay("Slope.png",[[-6.779136292,38.759250238],[-6.651126364,38.838212151]],{opacity:0.75,interactive:false});
+const Aspect=L.imageOverlay("Aspect.png",[[-6.779136292,38.759250238],[-6.651126364,38.838212151]],{opacity:0.75,interactive:false});
+const Hillshade=L.imageOverlay("Hillshade.png",[[-6.779136292,38.759250238],[-6.651126364,38.838212151]],{opacity:0.75,interactive:false});
+const healthIcon=L.divIcon({className:"custom-div-icon",html:"<div class='marker-health'></div>",iconSize:[12,12],iconAnchor:[6,6]});
+const schoolIcon=L.divIcon({className:"custom-div-icon",html:"<div class='marker-school'></div>",iconSize:[12,12],iconAnchor:[6,6]});
+const marketIcon=L.divIcon({className:"custom-div-icon",html:"<div class='marker-market'></div>",iconSize:[12,12],iconAnchor:[6,6]});
+function styleRoads(f){const rc=f.properties.Road_Class||"Local Road";const colors={"Primary Road":"#b91c1c","Secondary Road":"#d97706","Tertiary Road":"#16a34a","Local Road":"#6b7280"};const weights={"Primary Road":4,"Secondary Road":3,"Tertiary Road":2.5,"Local Road":1.5};return{color:colors[rc]||"#6b7280",weight:weights[rc]||1.5,opacity:0.85};}
+function styleContours(f){const e=f.properties.ELEV||0;return{color:"#8B4513",weight:(e%50===0)?1.5:0.7,opacity:0.75};}
+function styleRoadGrid(f){const s=f.properties.Road_Score||0;const c=s>0.7?"#27ae60":s>0.4?"#f39c12":"#e74c3c";return{fillColor:c,weight:0.15,color:"#444",fillOpacity:0.45};}
+function styleBuffer(color){return{color:color,weight:2.5,fillColor:color,fillOpacity:0.08,opacity:0.95,lineCap:"round",lineJoin:"round"};}
+function popup(props,layerName){let h="<table class='popup-table'>";h+="<tr><td colspan='2' style='font-size:12px;font-weight:700;color:#1a1a2e;border-bottom:2px solid #1a1a2e;padding-bottom:3px'>"+layerName+"</td></tr>";for(const[k,v] of Object.entries(props)){if(v!==null&&v!==undefined&&v!=="")h+="<tr><td style='font-weight:600;color:#64748b'>"+k+"</td><td>"+v+"</td></tr>";}h+="</table>";return h;}
+const overlays={};
+overlays["Kibaha Urban"]=L.geoJSON(g_Kibaha_Urban,{style:{color:"#1e3a8a",weight:3,fillColor:"#3b82f6",fillOpacity:0.06,dashArray:"6,4"}}).bindPopup(f=>popup(f.properties,"Kibaha Urban"));
+overlays["Visiga Ward"]=L.geoJSON(g_Visiga_Ward,{style:{color:"#dc2626",weight:3,fillColor:"#ef4444",fillOpacity:0.06,dashArray:"6,4"}}).bindPopup(f=>popup(f.properties,"Visiga Ward"));
+overlays["Kibaha Roads"]=L.geoJSON(g_Kibaha_Roads,{style:styleRoads}).bindPopup(f=>popup(f.properties,"Kibaha Roads"));
+overlays["Visiga Roads"]=L.geoJSON(g_Visiga_Roads,{style:styleRoads}).bindPopup(f=>popup(f.properties,"Visiga Roads"));
+overlays["Buildings"]=L.geoJSON(g_Buildings,{style:{color:"#4b5563",weight:0.4,fillColor:"#9ca3af",fillOpacity:0.45}}).bindPopup(f=>popup(f.properties,"Buildings"));
+overlays["Contours"]=L.geoJSON(g_CONTOUR1,{style:styleContours}).bindPopup(f=>popup(f.properties,"Contours"));
+overlays["Health Facilities"]=L.geoJSON(g_Visiga_Health,{pointToLayer:(f,latlng)=>L.marker(latlng,{icon:healthIcon})}).bindPopup(f=>popup(f.properties,"Health Facilities"));
+overlays["Schools"]=L.geoJSON(g_Visiga_Schools,{pointToLayer:(f,latlng)=>L.marker(latlng,{icon:schoolIcon})}).bindPopup(f=>popup(f.properties,"Schools"));
+overlays["Markets"]=L.geoJSON(g_Visiga_Markets,{pointToLayer:(f,latlng)=>L.marker(latlng,{icon:marketIcon})}).bindPopup(f=>popup(f.properties,"Markets"));
+overlays["Road Grid"]=L.geoJSON(g_road_grid,{style:styleRoadGrid}).bindPopup(f=>popup(f.properties,"Road Grid"));
+overlays["Health Buffer 1.5km"]=L.geoJSON(Health_Buffer_1_5km,{style:styleBuffer("#e74c3c")}).bindPopup(f=>popup(f.properties,"Health Buffer 1.5km"));
+overlays["School Buffer 2km"]=L.geoJSON(School_Buffer_2km,{style:styleBuffer("#3498db")}).bindPopup(f=>popup(f.properties,"School Buffer 2km"));
+overlays["Market Buffer 1km"]=L.geoJSON(Market_Buffer_1km,{style:styleBuffer("#2ecc71")}).bindPopup(f=>popup(f.properties,"Market Buffer 1km"));
+overlays["NDVI 2015"]=ndvi2015Layer;
+overlays["NDVI 2020"]=NDVI_2020;
+overlays["NDVI 2025"]=NDVI_2025;
+overlays["NDVI Change 2020-2015"]=NDVI_Change_2020_2015;
+overlays["NDVI Change 2025-2015"]=NDVI_Change_2025_2015;
+overlays["NDVI Change 2025-2020"]=NDVI_Change_2025_2020;
+overlays["Rainfall 2015"]=Rainfall_2015;
+overlays["Rainfall 2020"]=Rainfall_2020;
+overlays["Rainfall 2025"]=Rainfall_2025;
+overlays["Rainfall Change 2015-2025"]=Rainfall_Change_2015_2025;
+overlays["DEM"]=DEM;
+overlays["Slope"]=Slope;
+overlays["Aspect"]=Aspect;
+overlays["Hillshade"]=Hillshade;
+overlays["Visiga Ward"].addTo(map);
+overlays["NDVI 2015"].addTo(map);
+overlays["Kibaha Urban"].addTo(map);
+overlays["Visiga Roads"].addTo(map);
+L.control.layers(baseMaps,overlays,{position:"topleft",collapsed:true,sortLayers:false}).addTo(map);
+L.control.scale({position:"bottomright",metric:true,imperial:false,maxWidth:150}).addTo(map);
+map.zoomControl.setPosition("bottomright");
+map.on("mousemove",e=>{document.getElementById("coord-display").innerHTML="Lat: "+e.latlng.lat.toFixed(5)+" | Lon: "+e.latlng.lng.toFixed(5);});
+map.on("overlayadd overlayremove",updateLegend);
+function updateLegend(){const content=document.getElementById("legend-content");let html="";const active=[];for(const[name,layer] of Object.entries(overlays)){if(map.hasLayer(layer))active.push(name);}if(active.length===0){html="<p style=color:#888;font-size:10px;font-style:italic>Toggle layers to see legends.</p>";}else{if(active.some(n=>n.includes("NDVI"))){html+="<div class='legend-section'><div class='legend-section-title'>NDVI</div><div class='legend-item'><div class='legend-color' style='background:#F0FFF0;'></div>Very Sparse (&lt; 0.2)</div><div class='legend-item'><div class='legend-color' style='background:#90EE90;'></div>Sparse (0.2-0.3)</div><div class='legend-item'><div class='legend-color' style='background:#32CD32;'></div>Moderate (0.3-0.4)</div><div class='legend-item'><div class='legend-color' style='background:#228B22;'></div>Dense (0.4-0.5)</div><div class='legend-item'><div class='legend-color' style='background:#006400;'></div>Very Dense (&gt; 0.5)</div></div>";}if(active.some(n=>n.includes("Rainfall"))){html+="<div class='legend-section'><div class='legend-section-title'>Rainfall</div><div class='legend-item'><div class='legend-color' style='background:#F0F8FF;'></div>Low</div><div class='legend-item'><div class='legend-color' style='background:#87CEFA;'></div>Medium</div><div class='legend-item'><div class='legend-color' style='background:#4682B4;'></div>High</div></div>";}if(active.some(n=>n.includes("DEM"))){html+="<div class='legend-section'><div class='legend-section-title'>DEM</div><div class='legend-item'><div class='legend-color' style='background:#8B4513;'></div>Low</div><div class='legend-item'><div class='legend-color' style='background:#D2B48C;'></div>Medium-Low</div><div class='legend-item'><div class='legend-color' style='background:#9ACD32;'></div>Medium-High</div><div class='legend-item'><div class='legend-color' style='background:#FFFFFF;'></div>High</div></div>";}if(active.some(n=>n.includes("Slope"))){html+="<div class='legend-section'><div class='legend-section-title'>Slope</div><div class='legend-item'><div class='legend-color' style='background:#228B22;'></div>Flat</div><div class='legend-item'><div class='legend-color' style='background:#9ACD32;'></div>Gentle</div><div class='legend-item'><div class='legend-color' style='background:#FFA500;'></div>Moderate</div><div class='legend-item'><div class='legend-color' style='background:#B22222;'></div>Steep</div></div>";}if(active.some(n=>n.includes("Aspect"))){html+="<div class='legend-section'><div class='legend-section-title'>Aspect</div><div class='legend-item'><div class='legend-color' style='background:#B22222;'></div>North</div><div class='legend-item'><div class='legend-color' style='background:#FF8C00;'></div>Northeast</div><div class='legend-item'><div class='legend-color' style='background:#FFD700;'></div>East</div><div class='legend-item'><div class='legend-color' style='background:#9ACD32;'></div>Southeast</div><div class='legend-item'><div class='legend-color' style='background:#228B22;'></div>South</div><div class='legend-item'><div class='legend-color' style='background:#008B8B;'></div>Southwest</div><div class='legend-item'><div class='legend-color' style='background:#4169E1;'></div>West</div><div class='legend-item'><div class='legend-color' style='background:#8A2BE2;'></div>Northwest</div></div>";}if(active.some(n=>n.includes("Hillshade"))){html+="<div class='legend-section'><div class='legend-section-title'>Hillshade</div><div class='legend-item'><div class='legend-color' style='background:#000000;'></div>Shadow</div><div class='legend-item'><div class='legend-color' style='background:#808080;'></div>Mid</div><div class='legend-item'><div class='legend-color' style='background:#FFFFFF;'></div>Light</div></div>";}if(active.some(n=>n.includes("Roads"))){html+="<div class='legend-section'><div class='legend-section-title'>Roads</div><div class='legend-item'><div class='legend-line' style='background:#b91c1c;height:4px'></div>Primary Road</div><div class='legend-item'><div class='legend-line' style='background:#d97706;height:3px'></div>Secondary Road</div><div class='legend-item'><div class='legend-line' style='background:#16a34a;height:2.5px'></div>Tertiary Road</div><div class='legend-item'><div class='legend-line' style='background:#6b7280;height:1.5px'></div>Local Road</div></div>";}if(active.some(n=>n.includes("Buffer"))){html+="<div class='legend-section'><div class='legend-section-title'>Service Buffers</div><div class='legend-item'><div class='legend-circle' style='background:#e74c3c'></div>Health: 1.5 km</div><div class='legend-item'><div class='legend-circle' style='background:#3498db'></div>School: 2.0 km</div><div class='legend-item'><div class='legend-circle' style='background:#2ecc71'></div>Market: 1.0 km</div></div>";}if(active.some(n=>n.includes("Health")||n.includes("School")||n.includes("Market"))&&!active.some(n=>n.includes("Buffer"))){html+="<div class='legend-section'><div class='legend-section-title'>Facilities</div><div class='legend-item'><div class='legend-circle' style='background:#dc2626'></div>Health</div><div class='legend-item'><div class='legend-circle' style='background:#2563eb'></div>School</div><div class='legend-item'><div class='legend-circle' style='background:#16a34a'></div>Market</div></div>";}if(active.some(n=>n.includes("Urban")||n.includes("Ward"))){html+="<div class='legend-section'><div class='legend-section-title'>Boundaries</div><div class='legend-item'><div class='legend-dash' style='border-color:#1e3a8a'></div>Kibaha Urban</div><div class='legend-item'><div class='legend-dash' style='border-color:#dc2626'></div>Visiga Ward</div></div>";}if(active.some(n=>n.includes("Contours"))){html+="<div class='legend-section'><div class='legend-section-title'>Contours</div><div class='legend-item'><div class='legend-line' style='background:#8B4513;height:2px'></div>Major (50m)</div><div class='legend-item'><div class='legend-line' style='background:#8B4513;height:1px'></div>Minor</div></div>";}if(active.some(n=>n.includes("Road Grid"))){html+="<div class='legend-section'><div class='legend-section-title'>Road Grid</div><div class='legend-item'><div class='legend-color' style='background:#27ae60'></div>Good Access</div><div class='legend-item'><div class='legend-color' style='background:#f39c12'></div>Moderate</div><div class='legend-item'><div class='legend-color' style='background:#e74c3c'></div>Poor Access</div></div>";}if(active.some(n=>n.includes("Buildings"))){html+="<div class='legend-section'><div class='legend-section-title'>Buildings</div><div class='legend-item'><div class='legend-color' style='background:#9ca3af'></div>Building footprint</div></div>";}}content.innerHTML=html;}
+updateLegend();
+function toggleLegend(){document.getElementById("legendPanel").classList.toggle("collapsed");}
+L.Control.HomeButton=L.Control.extend({onAdd:function(map){const btn=L.DomUtil.create("button");btn.innerHTML="&#8962;";btn.title="Zoom to Study Area";btn.style.cssText="background:white;border:2px solid rgba(0,0,0,0.2);border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:16px;line-height:26px;";btn.onclick=()=>{map.fitBounds(L.latLngBounds([-6.83,38.75],[-6.56,39.06]),{padding:[20,20]});};return btn;}});
+L.control.homeButton=(opts)=>new L.Control.HomeButton(opts);
+L.control.homeButton({position:"bottomright"}).addTo(map);
+</script>
+</body>
+</html>'''
+
+with open('/mnt/agents/output/kibaha_visiga_webmap_SCRIPT.html', 'w', encoding='utf-8') as f:
+    f.write(html_content)
+
+print(f"File saved: {len(html_content):,} chars")
